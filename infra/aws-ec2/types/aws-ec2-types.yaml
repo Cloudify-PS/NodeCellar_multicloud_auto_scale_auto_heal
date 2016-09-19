@@ -81,7 +81,7 @@ node_types:
 
 relationships:
 
-  multicloud.ip_to_cloud_ip:
+  multicloud.relationships.ip_to_cloud_ip:
     derived_from: cloudify.relationships.connected_to
     source_interfaces:
       cloudify.interfaces.relationship_lifecycle:
@@ -89,8 +89,8 @@ relationships:
           implementation: infra/aws-ec2/scripts/configure_ip_aws.py
           executor : central_deployment_agent
 
-  multicloud.server_connected_to_security_group:
+  multicloud.relationships.server_connected_to_security_group:
     derived_from: cloudify.aws.relationships.instance_connected_to_security_group
 
-  multicloud.server_connected_to_ip:
+  multicloud.relationships.server_connected_to_ip:
     derived_from: cloudify.aws.relationships.instance_connected_to_elastic_ip

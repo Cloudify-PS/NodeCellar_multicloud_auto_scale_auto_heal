@@ -90,7 +90,7 @@ node_types:
 
 relationships:
 
-  multicloud.ip_to_cloud_ip:
+  multicloud.relationships.ip_to_cloud_ip:
     derived_from: cloudify.relationships.connected_to
     source_interfaces:
       cloudify.interfaces.relationship_lifecycle:
@@ -98,8 +98,8 @@ relationships:
           implementation: infra/openstack/scripts/configure_ip_openstack.py
           executor : central_deployment_agent
 
-  multicloud.server_connected_to_security_group:
+  multicloud.relationships.server_connected_to_security_group:
     derived_from: cloudify.openstack.server_connected_to_security_group
 
-  multicloud.server_connected_to_ip:
+  multicloud.relationships.server_connected_to_ip:
     derived_from: cloudify.openstack.server_connected_to_floating_ip
