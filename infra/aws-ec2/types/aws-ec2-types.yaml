@@ -1,0 +1,96 @@
+node_types:
+
+  ###########################################################
+  # We define a type that inherits ec2's default
+  # server, and adds monitoring capabillities on top of it.
+  ###########################################################
+
+  multicloud.nodes.MonitoredServer:
+    derived_from: cloudify.aws.nodes.Instance
+    properties:
+      cloudify_agent:
+        default:
+          user: { get_input: agent_user }
+      image_id:
+        default: { get_input: aws_image }
+      instance_type:
+        default: { get_input: aws_size }
+    interfaces:
+
+      ###########################################################
+      # We are infact telling cloudify to install a diamond
+      # monitoring agent on the server.
+      #
+      # (see https://github.com/BrightcoveOS/Diamond)
+      ###########################################################
+
+      cloudify.interfaces.monitoring_agent:
+          install:
+            implementation: diamond.diamond_agent.tasks.install
+            inputs:
+              diamond_config:
+                default:
+                  interval: 1
+          start: diamond.diamond_agent.tasks.start
+          stop: diamond.diamond_agent.tasks.stop
+          uninstall: diamond.diamond_agent.tasks.uninstall
+
+      ###########################################################
+      # Adding some collectors. These collectors are necessary
+      # for the Cloudify UI to display the deafult metrics.
+      ###########################################################
+
+      cloudify.interfaces.monitoring:
+          start:
+            implementation: diamond.diamond_agent.tasks.add_collectors
+            inputs:
+              collectors_config:
+                default:
+                  CPUCollector: {}
+                  MemoryCollector: {}
+                  LoadAverageCollector: {}
+                  DiskUsageCollector:
+                    config:
+                      devices: x?vd[a-z]+[0-9]*$
+                  NetworkCollector: {}
+
+  multicloud.nodes.SecurityGroup:
+    derived_from: cloudify.aws.nodes.SecurityGroup
+    properties:
+      openstack_properties:
+        default: {}
+      aws_properties:
+        default: {}
+        
+      description: 
+        default: { get_property: [ SELF, aws_properties , description ] }
+      rules:
+        default: { get_property: [ SELF, aws_properties , rules ] }
+
+
+  multicloud.nodes.cloud_ip:
+    derived_from: cloudify.aws.nodes.ElasticIP
+
+
+  multicloud.nodes.ip:
+    derived_from: cloudify.nodes.VirtualIP
+    properties:
+      ip_address: 
+       default: ''
+
+
+relationships:
+
+  multicloud.ip_to_cloud_ip:
+    derived_from: cloudify.relationships.connected_to
+    source_interfaces:
+      cloudify.interfaces.relationship_lifecycle:
+        postconfigure:
+          implementation: infra/aws-ec2/scripts/configure_ip_aws.py
+          executor : central_deployment_agent
+
+  multicloud.server_connected_to_security_group:
+    derived_from: cloudify.aws.relationships.instance_connected_to_security_group
+
+  multicloud.server_connected_to_ip:
+    derived_from: cloudify.aws.relationships.instance_connected_to_elastic_ip

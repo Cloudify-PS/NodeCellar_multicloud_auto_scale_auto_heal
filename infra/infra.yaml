@@ -1,0 +1,167 @@
+node_templates:
+
+  mongod_host:
+    type: multicloud.nodes.MonitoredServer
+    relationships:
+
+      ###########################################################
+      # Attaching the mongo security group to the mongo host
+      ###########################################################
+
+      - target: mongod_security_group
+        type: multicloud.server_connected_to_security_group
+
+  nodejs_host:
+    type: multicloud.nodes.MonitoredServer
+
+    ###########################################################
+    # Setting the nodejs_host initial number of instances to 2.
+    # The default values for instances.deploy is 1.
+    ###########################################################
+
+    instances:
+      deploy: 2
+
+    relationships:
+
+      ###########################################################
+      # Attaching the nodecellar security group to
+      # the nodecellar host
+      ###########################################################
+
+      - target: nodecellar_security_group
+        type: multicloud.server_connected_to_security_group
+
+  haproxy_frontend_host:
+    type: multicloud.nodes.MonitoredServer
+    relationships:
+
+      ###########################################################
+      # Attaching an ip to the haproxy frontend host
+      ###########################################################
+
+      - type: multicloud.server_connected_to_ip
+        target: nodecellar_cloud_ip
+
+      ###########################################################
+      # Attaching the haproxy frontend security group to
+      # the haproxy frontend host
+      ###########################################################
+
+      - type: multicloud.server_connected_to_security_group
+        target: haproxy_frontend_security_group
+
+  ###########################################################
+  # A security group to enable access to the mongo host
+  # using the port of the mongo node.
+  #
+  # We need this so that the nodecellar application can
+  # comminicate with MongoDB, since they are running on
+  # different hosts.
+  ###########################################################
+
+  mongod_security_group:
+    type: multicloud.nodes.SecurityGroup
+    properties:
+      openstack_properties:
+        security_group:
+          name: mongod_security_group
+        rules:
+          - remote_ip_prefix: 0.0.0.0/0
+            port: { get_input: mongod_port }
+          - remote_ip_prefix: 0.0.0.0/0
+            port: 28017
+      aws_properties:
+        description: Security Group for Mongo VMs
+        rules:
+          - ip_protocol: tcp
+            from_port: { get_input: mongod_port }
+            to_port: { get_input: mongod_port }
+            cidr_ip: 0.0.0.0/0
+          - ip_protocol: tcp
+            from_port: 28017
+            to_port: 28017
+            cidr_ip: 0.0.0.0/0
+
+  ###########################################################
+  # A security group to enable access to the nodejs host
+  # using the port of the nodecellar application.
+  #
+  # This security group will be attached to the nodejs_host
+  ###########################################################
+
+  nodecellar_security_group:
+    type: multicloud.nodes.SecurityGroup
+    properties:
+      openstack_properties:
+        security_group:
+          name: nodecellar_security_group
+        rules:
+          - remote_ip_prefix: 0.0.0.0/0
+            port: { get_input: webapp_port }
+
+      aws_properties:
+        description: Security Group for Nodecellar VMs
+        rules:
+          - ip_protocol: tcp
+            from_port: { get_input: webapp_port }
+            to_port: { get_input: webapp_port }
+            cidr_ip: 0.0.0.0/0
+
+  ###########################################################
+  # A security group to enable access to the haproxy frontend
+  # host using the haproxy frontend_port property.
+  # In addition, we open the statistics port (9000) of haproxy
+  #
+  # This security group will be attached to the
+  # haproxy_frontend_host
+  ###########################################################
+
+  haproxy_frontend_security_group:
+    type: multicloud.nodes.SecurityGroup
+    properties:
+
+      openstack_properties:
+        security_group:
+          name: haproxy_frontend_security_group
+        rules:
+          - remote_ip_prefix: 0.0.0.0/0
+            port: { get_input: frontend_port }
+          - remote_ip_prefix: 0.0.0.0/0
+            port: { get_input: statistics_port }
+
+      aws_properties:
+        description: Security Group for HAProxy VM
+        rules:
+          - ip_protocol: tcp
+            from_port: { get_input: frontend_port }
+            to_port: { get_input: frontend_port  }
+            cidr_ip: 0.0.0.0/0
+          - ip_protocol: tcp
+            from_port: { get_input: statistics_port }
+            to_port: { get_input: statistics_port }
+            cidr_ip: 0.0.0.0/0
+
+
+  ###########################################################
+  # An ip to be attached to the haproxy frontend host, since
+  # eventually we want to be able to access it
+  # from any machine, on any network.
+  ###########################################################
+
+  nodecellar_cloud_ip:
+    type: multicloud.nodes.cloud_ip
+
+  nodecellar_ip:
+    type: multicloud.nodes.ip
+    relationships:
+      - type: multicloud.ip_to_cloud_ip
+        target: nodecellar_cloud_ip
+
+
+outputs:
+  endpoint:
+    description: Web application endpoint
+    value:
+      ip_address: { get_attribute: [ nodecellar_ip, ip_address ] }
+      port: { get_property: [haproxy, frontend_port] }
