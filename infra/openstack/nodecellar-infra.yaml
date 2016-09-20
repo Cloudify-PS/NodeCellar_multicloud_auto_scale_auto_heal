@@ -153,7 +153,7 @@ node_types:
       # (see https://github.com/BrightcoveOS/Diamond)
       ###########################################################
 
-       cloudify.interfaces.monitoring_agent:
+      cloudify.interfaces.monitoring_agent:
           install:
             implementation: diamond.diamond_agent.tasks.install
             inputs:
