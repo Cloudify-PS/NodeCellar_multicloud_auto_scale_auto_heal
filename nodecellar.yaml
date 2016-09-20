@@ -10,8 +10,9 @@ imports:
   - http://www.getcloudify.org/spec/diamond-plugin/1.3.1/plugin.yaml
 
   - http://cloud.local:53229/cloud/nodecellar-infra.yaml
-#  - infra/openstack/openstack.yaml
-  - infra/aws-ec2/aws-ec2.yaml
+
+#  - infra/openstack/nodecellar-infra.yaml
+#  - infra/aws-ec2/nodecellar-infra.yaml
 
   - types/nodecellar.yaml
   - types/haproxy/haproxy.yaml
@@ -32,7 +33,8 @@ inputs:
     description: >
       User for connecting to agent VM's
 
-
+  application_url:
+    default: 'https://github.com/cloudify-cosmo/nodecellar/archive/master.tar.gz'
 
   #######################
   # AWS inputs
