@@ -1,0 +1,124 @@
+# VMware vCenter parameters
+dsl_definitions:
+    connection_config: &connection_config
+        username: { get_input: vsphere_username }
+        password: { get_input: vsphere_password }
+        host: { get_input: vsphere_host }
+        port: { get_input: vsphere_port }
+        datacenter_name: { get_input: vsphere_datacenter_name }
+        resource_pool_name: { get_input: vsphere_resource_pool_name }
+        auto_placement: { get_input: vsphere_auto_placement }
+
+node_templates:
+
+  mongod_host:
+    type: nodecellar.nodes.MonitoredServer
+    properties:
+      connection_config: *connection_config
+
+  nodejs_host:
+    type: nodecellar.nodes.MonitoredServer
+    properties:
+      connection_config: *connection_config
+      
+    ###########################################################
+    # Setting the nodejs_host initial number of instances to 2.
+    # The default values for instances.deploy is 1.
+    ###########################################################
+
+    instances:
+      deploy: 2
+
+
+  haproxy_frontend_host:
+    type: nodecellar.nodes.MonitoredServer
+    properties:
+      connection_config: *connection_config
+
+
+outputs:
+  endpoint:
+    description: Web application endpoint
+    value:
+      ip_address: { get_attribute: [ haproxy_frontend_host, ip ] }
+      port: { get_property: [haproxy, frontend_port] }
+
+
+      
+      
+node_types:
+
+  ###########################################################
+  # We define a type that inherits vsphere's default
+  # server, and adds monitoring capabillities on top of it.
+  ###########################################################
+
+  nodecellar.nodes.MonitoredServer:
+    derived_from: cloudify.vsphere.nodes.Server
+    properties:
+      cloudify_agent:
+          default:
+            user: { get_input: agent_user }
+      server:
+        default:
+          template: { get_input: vsphere_image }
+          cpus: { get_input: vsphere_cpu }
+          memory: { get_input: vsphere_memory }
+      networking:
+        default:
+          connect_networks:
+            - name: { get_input: vsphere_management_network }
+              switch_distributed: { get_input: is_vsphere_management_switch_distributed }
+              management: True
+            - name: { get_input: vsphere_external_network }
+              switch_distributed: { get_input: is_vsphere_external_switch_distributed }
+              external: True
+
+    interfaces:
+
+      ###########################################################
+      # We are infact telling cloudify to install a diamond
+      # monitoring agent on the server.
+      #
+      # (see https://github.com/BrightcoveOS/Diamond)
+      ###########################################################
+
+      cloudify.interfaces.monitoring_agent:
+        install:
+          implementation: diamond.diamond_agent.tasks.install
+          inputs:
+            diamond_config:
+              default:
+                interval: 10
+        start: diamond.diamond_agent.tasks.start
+        stop: diamond.diamond_agent.tasks.stop
+        uninstall: diamond.diamond_agent.tasks.uninstall
+
+      ###########################################################
+      # Adding some collectors. These collectors are necessary
+      # for the Cloudify UI to display the deafult metrics.
+      ###########################################################
+
+      cloudify.interfaces.monitoring:
+        start:
+          implementation: diamond.diamond_agent.tasks.add_collectors
+          inputs:
+            collectors_config:
+              default:
+                CPUCollector: {}
+                MemoryCollector: {}
+                LoadAverageCollector: {}
+                DiskUsageCollector:
+                  config:
+                    devices: x?vd[a-z]+[0-9]*$
+                NetworkCollector: {}
+                ProcessResourcesCollector:
+                  config:
+                    enabled: true
+                    unit: B
+                    measure_collector_time: true
+                    cpu_interval: 5
+                    process:
+                      node:
+                        name: node
+                        

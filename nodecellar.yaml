@@ -8,12 +8,13 @@ imports:
   - http://www.getcloudify.org/spec/openstack-plugin/1.3.1/plugin.yaml
   - http://www.getcloudify.org/spec/aws-plugin/1.3.1/plugin.yaml
   - http://www.getcloudify.org/spec/diamond-plugin/1.3.1/plugin.yaml
+  - http://www.getcloudify.org/spec/vsphere-plugin/2.0.1/plugin.yaml
 
-  - http://cloud.local:53229/cloud/nodecellar-infra.yaml
+#  - http://cloud.local:53229/cloud/nodecellar-infra.yaml
 
 #  - infra/openstack/nodecellar-infra.yaml
 #  - infra/aws-ec2/nodecellar-infra.yaml
-
+  - infra/vsphere/nodecellar-infra.yaml
   - types/nodecellar.yaml
   - types/haproxy/haproxy.yaml
   - types/scale/scale.yaml
@@ -60,6 +61,85 @@ inputs:
     description: >
       Flavor of the agent VM's
 
+  #######################
+  # vSphere Inputs
+  #######################
+
+  #######################
+  # vCenter parameters
+  #######################
+
+  vsphere_username:
+    description: >
+      vCenter username
+    default: ''
+
+  vsphere_password:
+    description: >
+      vCenter user password
+    default: ''
+
+  vsphere_host:
+    description: >
+      vCenter hostname
+    default: ''
+
+  vsphere_port:
+    description: >
+      vCenter communication port
+    default: 443
+
+  vsphere_datacenter_name:
+    description: >
+      vCenter Datacenter name
+    default: ''
+
+  vsphere_resource_pool_name:
+    description: >
+      Resource pool name
+    default: ''
+
+  vsphere_auto_placement:
+    description: >
+      If Cluster is presented it should be "True"
+    default: False
+
+#######################
+# VM parameters
+#######################  
+  vsphere_image:
+    description: >
+      Image to be used when launching agent VM's
+  
+  vsphere_cpu:
+    description: >
+      VM's CPU count
+    default: 1
+  
+  vsphere_memory:
+    description: >
+      VM's RAM MB
+    default: 2048
+    
+  vsphere_management_network:
+    description: >
+      Name of management network
+  
+  is_vsphere_management_switch_distributed:
+    description: >
+      What switch is presented, vSS or vDS
+    type: boolean
+    default: True
+
+  vsphere_external_network:
+    description: >
+      Name of "external" network
+      
+  is_vsphere_external_switch_distributed:
+    description: >
+      What switch is presented, vSS or vDS
+    type: boolean
+    default: True
 
 
 node_templates:
