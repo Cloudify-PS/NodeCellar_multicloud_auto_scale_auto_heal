@@ -159,7 +159,7 @@ node_types:
             inputs:
               diamond_config:
                 default:
-                  interval: 1
+                  interval: 10
           start: diamond.diamond_agent.tasks.start
           stop: diamond.diamond_agent.tasks.stop
           uninstall: diamond.diamond_agent.tasks.uninstall
@@ -187,7 +187,7 @@ node_types:
                       enabled: true
                       unit: B
                       measure_collector_time: true
-                      cpu_interval: 0.5
+                      cpu_interval: 5
                       process:
                         node:
                           name: node
