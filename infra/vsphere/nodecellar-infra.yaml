@@ -56,7 +56,7 @@ node_types:
   nodecellar.nodes.MonitoredServer:
     derived_from: cloudify.vsphere.nodes.Server
     properties:
-      cloudify_agent:
+      agent_config:
           default:
             user: { get_input: agent_user }
       server:
