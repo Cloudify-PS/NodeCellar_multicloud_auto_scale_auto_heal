@@ -59,6 +59,7 @@ node_types:
       agent_config:
           default:
             user: { get_input: agent_user }
+            install_method: remote
       server:
         default:
           template: { get_input: vsphere_image }
@@ -68,10 +69,10 @@ node_types:
         default:
           connect_networks:
             - name: { get_input: vsphere_management_network }
-              switch_distributed: { get_input: is_vsphere_management_switch_distributed }
+              switch_distributed: { get_input: vsphere_is_management_switch_distributed }
               management: True
             - name: { get_input: vsphere_external_network }
-              switch_distributed: { get_input: is_vsphere_external_switch_distributed }
+              switch_distributed: { get_input: vsphere_is_external_switch_distributed }
               external: True
 
     interfaces:
@@ -110,7 +111,7 @@ node_types:
                 LoadAverageCollector: {}
                 DiskUsageCollector:
                   config:
-                    devices: x?vd[a-z]+[0-9]*$
+                    devices: sd[a-z]+[0-9]*$
                 NetworkCollector: {}
                 ProcessResourcesCollector:
                   config:
