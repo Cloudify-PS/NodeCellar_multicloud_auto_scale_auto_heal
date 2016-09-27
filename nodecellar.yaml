@@ -34,10 +34,13 @@ inputs:
 
 
   agent_user:
+    type: string
+    default: ubuntu
     description: >
       User for connecting to agent VM's
 
   application_url:
+    type: string
     default: 'https://github.com/cloudify-cosmo/nodecellar/archive/master.tar.gz'
 
   #######################
@@ -45,10 +48,14 @@ inputs:
   #######################
 
   aws_image:
+    type: string
+    default:
     description: >
-      Image to be used when launching agent VM's
+      Aws image to be used when launching agent VM's
 
   aws_size:
+    type: string
+    default:
     description: >
       Flavor of the agent VM's
 
@@ -57,19 +64,19 @@ inputs:
   ########################
 
   openstack_image:
+    type: string
+    default:
     description: >
-      Image to be used when launching agent VM's
+      OpenStack image to be used when launching agent VM's
 
   openstack_flavor:
+    type: string
+    default:
     description: >
       Flavor of the agent VM's
 
   #######################
   # vSphere Inputs
-  #######################
-
-  #######################
-  # vCenter parameters
   #######################
 
   vsphere_username:
@@ -107,14 +114,18 @@ inputs:
       If Cluster is presented it should be "True"
     default: False
 
-#######################
-# VM parameters
-#######################
+  #######################
+  # VM parameters
+  #######################
+
   vsphere_image:
+    type: string
+    default:
     description: >
-      Image to be used when launching agent VM's
+      Vsphere image to be used when launching agent VM's
 
   vsphere_cpu:
+    type: integer
     description: >
       VM's CPU count
     default: 1
@@ -125,6 +136,8 @@ inputs:
     default: 2048
 
   vsphere_management_network:
+    type: string
+    default:
     description: >
       Name of management network
 
@@ -135,6 +148,8 @@ inputs:
     default: True
 
   vsphere_external_network:
+    type: string
+    default:
     description: >
       Name of "external" network
 
@@ -144,18 +159,21 @@ inputs:
     type: boolean
     default: True
 
-#######################
-# Vcloud
-#######################
+  #######################
+  # Vcloud
+  #######################
 
   vcloud_template:
     type: string
+    default:
 
   vcloud_agent_public_key:
     type: string
+    default:
 
   vcloud_catalog:
     type: string
+    default:
 
   vcloud_server_cpu:
     default: 2
@@ -175,9 +193,10 @@ inputs:
       is always 'gateway'
 
   vcloud_management_network_name:
+    type: string
+    default:
     description: >
       Name of the existing network that's being used for Cloudify management
-    type: string
 
 node_templates:
 
