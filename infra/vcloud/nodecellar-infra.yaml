@@ -1,0 +1,188 @@
+node_types:
+
+  ###########################################################
+  # We define a type that inherits vcloud's default
+  # server, and adds monitoring capabillities on top of it.
+  ###########################################################
+
+  nodecellar.nodes.MonitoredServer:
+    derived_from: cloudify.vcloud.nodes.Server
+    properties:
+      cloudify_agent:
+        default:
+          user: { get_input: agent_user }
+          home_dir: /home/ubuntu
+      server:
+        default:
+          catalog: { get_input: vcloud_catalog }
+          template: { get_input: vcloud_template }
+          hardware:
+            cpu: { get_input: vcloud_server_cpu }
+            memory: { get_input: vcloud_server_memory }
+      management_network:
+        default: { get_input: vcloud_management_network_name }
+    interfaces:
+
+      ###########################################################
+      # We are infact telling cloudify to install a diamond
+      # monitoring agent on the server.
+      #
+      # (see https://github.com/BrightcoveOS/Diamond)
+      ###########################################################
+
+      cloudify.interfaces.monitoring_agent:
+          install:
+            implementation: diamond.diamond_agent.tasks.install
+            inputs:
+              diamond_config:
+                default:
+                  interval: 1
+          start: diamond.diamond_agent.tasks.start
+          stop: diamond.diamond_agent.tasks.stop
+          uninstall: diamond.diamond_agent.tasks.uninstall
+
+      ###########################################################
+      # Adding some collectors. These collectors are necessary
+      # for the Cloudify UI to display the deafult metrics.
+      ###########################################################
+
+      cloudify.interfaces.monitoring:
+          start:
+            implementation: diamond.diamond_agent.tasks.add_collectors
+            inputs:
+              collectors_config:
+                default:
+                  CPUCollector: {}
+                  MemoryCollector: {}
+                  LoadAverageCollector: {}
+                  DiskUsageCollector:
+                    config:
+                      devices: x?vd[a-z]+[0-9]*$
+                  NetworkCollector: {}
+
+node_templates:
+
+  nodejs_host:
+    type: nodecellar.nodes.MonitoredServer
+    relationships:
+
+      ###########################################################
+      # Attaching a floating ip to the nodejs host
+      ###########################################################
+      - target: ssh_keypair
+        type: cloudify.vcloud.server_connected_to_keypair
+      - target: nodejs_security_group
+        type: cloudify.vcloud.server_connected_to_security_group
+    ###########################################################
+    # Setting the nodejs_host initial number of instances to 2.
+    # The default values for instances.deploy is 1.
+    ###########################################################
+
+    instances:
+      deploy: 2
+
+  mongod_host:
+    type: nodecellar.nodes.MonitoredServer
+    relationships:
+      - target: ssh_keypair
+        type: cloudify.vcloud.server_connected_to_keypair
+      - target: mongod_security_group
+        type: cloudify.vcloud.server_connected_to_security_group
+
+  haproxy_frontend_host:
+    type: nodecellar.nodes.MonitoredServer
+    relationships:
+      - target: nodecellar_ip
+        type: cloudify.vcloud.server_connected_to_floating_ip
+      - target: ssh_keypair
+        type: cloudify.vcloud.server_connected_to_keypair
+      - target: haproxy_security_group
+        type: cloudify.vcloud.server_connected_to_security_group
+
+  ssh_keypair:
+    type: cloudify.vcloud.nodes.KeyPair
+    properties:
+      public_key:
+        user: { get_input: agent_user }
+        key:  { get_input: vcloud_agent_public_key }
+
+  haproxy_security_group:
+      type: cloudify.vcloud.nodes.SecurityGroup
+      properties:
+          security_group:
+              name: nodejsvcloud_security_group
+              edge_gateway: { get_input: vcloud_edge_gateway }
+          rules:
+              - source: external
+                destination: internal
+                destination_port: 80
+                action: allow
+                description: >
+                      http to nodejs node
+                protocol: TCP
+              - source: external
+                destination: internal
+                destination_port: 8080
+                action: allow
+                description: >
+                      http to nodejs node
+                protocol: TCP
+              - source: host
+                destination: any
+                action: allow
+                description: >
+                       backward network connection for nodejs updates
+                protocol: any
+
+  nodejs_security_group:
+      type: cloudify.vcloud.nodes.SecurityGroup
+      properties:
+          security_group:
+              name: mongodvcloud_security_group
+              edge_gateway: { get_input: vcloud_edge_gateway }
+          rules:
+              - source: host
+                destination: any
+                action: allow
+                description: >
+                       backward network connection for mongod updates
+                protocol: any
+
+
+  mongod_security_group:
+      type: cloudify.vcloud.nodes.SecurityGroup
+      properties:
+          security_group:
+              name: mongodvcloud_security_group
+              edge_gateway: { get_input: vcloud_edge_gateway }
+          rules:
+              - source: host
+                destination: any
+                action: allow
+                description: >
+                       backward network connection for mongod updates
+                protocol: any
+
+  ###########################################################
+  # A floating ip to be attached to the nodejs host, since
+  # eventually we want to be able to access it
+  # from any machine, on any network.
+  ###########################################################
+
+  nodecellar_ip:
+    type: cloudify.vcloud.nodes.FloatingIP
+    properties:
+      floatingip:
+        edge_gateway: { get_input: vcloud_edge_gateway }
+
+###########################################################
+# This outputs section exposes the application endpoint.
+# You can access it by running:
+#   - cfy deployments -d <deployment_id> outputs
+###########################################################
+
+outputs:
+  endpoint:
+    description: Web application endpoint
+    value:
+      ip_address: { get_attribute: [ nodecellar_ip, public_ip ] }
